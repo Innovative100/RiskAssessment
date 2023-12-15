@@ -12,10 +12,11 @@ from langchain.chat_models import AzureChatOpenAI
 
 # %%
 model_llm = AzureChatOpenAI(
-    temperature = 0.2,
+    temperature = 0.1,
     azure_deployment = 'deployment-text-risk-assessment',
     # azure_endpoint = os.getenv(),
     # openai_api_type = os.getenv()
+    openai_api_type = 'azure',
     openai_api_version = '2023-08-01-preview', 
     openai_api_key = os.getenv('AZURE_OPENAI_API_KEY'),
     openai_api_base = 'https://instance-text-risk-assessment.openai.azure.com/',
@@ -75,6 +76,7 @@ model_embedding = OpenAIEmbeddings(
     deployment = 'deployment-embedding-ada-002',
     # model = ,
     chunk_size = 16,
+    openai_api_type = 'azure',
     openai_api_version = '2023-08-01-preview',
     openai_api_base = 'https://instance-text-risk-assessment.openai.azure.com/',
     openai_api_key = os.getenv('AZURE_OPENAI_API_KEY'),
@@ -208,14 +210,6 @@ query = "what is walmarts' law suit 5 years ago?"
 # agent_with_memory.run(input = query)
 
 # %%
-import streamlit as st
-
-st.title('Risk-Assessment Interactive Query')
-user_web_input = st.text_input('Enter you company risk-factor realated query below')
-if st.button('Click to Generate Query Result') and user_web_input:
-    output = agent_without_memory.run(user_web_input)
-    st.write(output)
-
 
 
 # %%
@@ -239,7 +233,7 @@ if st.button('Click to Generate Query Result') and user_web_input:
 # %%
 # pip install langchain_experimental
 
-_= """
+# _= """
 
 from langchain_experimental.agents.agent_toolkits import create_csv_agent
 # from langchain.agents.agent_toolkits import create_csv_agent
@@ -248,7 +242,7 @@ from langchain.agents import AgentType, initialize_agent
 
 agent_csv = create_csv_agent(
     model_llm,
-    './data/csv/titanic.csv',
+    './data/csv/bank_portugal.csv',
     verbose = True,
     agent_type = AgentType.ZERO_SHOT_REACT_DESCRIPTION,
 )
@@ -256,7 +250,10 @@ agent_csv = create_csv_agent(
 query = 'how many row are there?'
 agent_csv.run(query)
 
-"""
+# """
+
+
+
 
 # %% [markdown]
 # #### Build database: Store .csv files into database 
@@ -347,7 +344,7 @@ for record in curr.fetchall():
 # ### Define Tool - SQL query 
 
 # %%
-_= """
+# _= """
 
 from langchain.sql_database import SQLDatabase
 from langchain.agents import create_sql_agent
@@ -360,7 +357,7 @@ tool_sql = SQLDatabaseToolkit(
     llm = model_llm,
 )
 
-agent = create_sql_agent(
+agent_sql = create_sql_agent(
     llm = model_llm,
     toolkit = tool_sql,
     agent_type = AgentType.ZERO_SHOT_REACT_DESCRIPTION,
@@ -368,10 +365,10 @@ agent = create_sql_agent(
 )
 
 query = ("how many rows are there in the accounts table?")
-output = agent.run(query)
-print(output)
+# output = agent.run(query)
+# print(output)
 
-"""
+# """
 
 
 
@@ -451,5 +448,52 @@ output = chain.invoke(prompt)
 
 """
 # print(output)
+
+
+import streamlit as st
+
+st.set_page_config(
+    page_title = "Multiple APP"
+)
+
+
+
+st.title('Interactive Question Answer for: ')
+
+st.write("  ")
+st.write(" " + "  (1) company risk-assessment related questions (unstructured data source)")
+st.write("  (2) company database related questions (structured data source - .csv data file and data tables in database)")
+st.write(" ")
+st.write(" ")
+st.write(" ")
+
+st.write("* Tool 1: Query-interface for risk-assessment related questions")
+user_web_input = st.text_input('Enter you company risk-factor related query below:')
+if st.button('Click to submit query (risk assessment related)') and user_web_input:
+    output = agent_without_memory.run(user_web_input)
+    st.write(output)
+
+st.write(" ")
+st.write(" ")
+st.write(" ")
+st.write(" ")
+st.write(" ")
+st.write("* Tool 2.1: Query-interface for database related questions - .csv data file")
+user_web_input = st.text_input('Enter you database related query below:')
+if st.button('Click to submit query (.csv file related)') and user_web_input:
+    output = agent_csv.run(user_web_input)
+    st.write(output)
+
+st.write(" ")
+st.write(" ")
+st.write(" ")
+
+st.write("* Tool 2.2: Query-interface for database related questions - data tables in database")
+user_web_input = st.text_input('Enter you database related query below: ')
+if st.button('Click to submit query (database related)') and user_web_input:
+    output = agent_sql.run(user_web_input)
+    st.write(output)
+
+# st.sidebar.success("Select a page above")
 
 
